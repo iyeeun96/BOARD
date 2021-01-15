@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- mybatis에는 List형식이 없음. BoardDto를 통째로 리턴해서 자동으로 List에 넣어줌 -->
+<!-- 반환이 List일 경우 한 항목에 대한 type을 지정 -->
+<!-- 쿼리에서 <>비교연산자 쓸 경우 <![CDATA[]]>로 묶어줘야함. -->
+<mapper namespace="com.kotlin.board.dao.BoardDao">
+	<!-- 게시물 목록 가져오기 -->
+	<select id="getList" parameterType="Integer"
+		resultType="com.kotlin.board.dto.BoardDto">
+   		<![CDATA[
+   			SELECT * FROM BLIST_1
+   			WHERE RONUM>=#{pageNum}*10-9
+   			AND RONUM<=#{pageNum}*10  
+   		]]>
+	</select>
+	<!-- 게시글 전체 개수 구하기 -->
+	<select id="getBoardCnt" resultType="Integer">
+		SELECT COUNT(*) FROM BLIST_1
+	</select>
+	<!-- 게시글 등록 쿼리 -->
+	<insert id="boardInsert"
+		parameterType="com.kotlin.board.dto.BoardDto" useGeneratedKeys="true"
+		keyProperty="bnum">
+		<selectKey keyProperty="bnum" resultType="int"
+			order="BEFORE">
+			SELECT BOARD_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO B
+		VALUES (${bnum},#{btitle},#{bcontents},#{bid},DEFAULT,DEFAULT)
+	</insert>
+	<!-- #과 $의 구분 # : 파라미터가 String 형태로 들어와서 자동으로 컬럼 타입으로 변경 숫자 : 10, 문자열 : '10' 
+		$ : 파라미터 그대로 사용. 보안 측면에서 불리함. (수정하고 싶은 데이터의)컬럼명을 파라미터로 받아서 처리할 경우 사용. SELECT 
+		#{COL_NAME} FROM B : 이렇게 쿼리를 작성하고 파라미터로 컬럼명을 전달. B_NUM을 파라미터로 전달하면 SELECT 
+		B_NUM FROM B 로 쿼리가 완성됨. -->
+	<!-- 파일 등록 쿼리 -->
+	<!-- 외래키 게시글의 글 번호 bnum -->
+	<insert id="fileInsert" parameterType="HashMap">
+		INSERT INTO BF
+		VALUES (BF_SEQ.NEXTVAL,#{bnum},#{oriName},#{sysName})
+	</insert>
+	<!-- 해당 게시글 내용 가져오기 -->
+	<select id="getContents" parameterType="Integer" resultType="com.kotlin.board.dto.BoardDto">
+		SELECT * FROM BLIST_1 WHERE BNUM=#{bnum}
+	</select>
+	<!-- 해당 게시글에 업로드한 파일 목록 가져오기 -->
+	<select id="getBfList" parameterType="Integer" resultType="com.kotlin.board.dto.BfileDto">
+		SELECT * FROM BF WHERE BF_BNUM=#{bnum}
+	</select>
+	<!-- 해당 게시글의 댓글 목록 가져오기 -->
+	<select id="getReplyList" parameterType="Integer" resultType="com.kotlin.board.dto.ReplyDto">
+		SELECT * FROM RLIST WHERE R_BNUM=#{bnum}
+	</select>
+	<!-- 댓글 등록하기 -->
+	<insert id="replyInsert" parameterType="com.kotlin.board.dto.ReplyDto">
+		INSERT INTO R VALUES(REPLY_SEQ.NEXTVAL,#{r_bnum},#{r_contents},#{r_id},DEFAULT)
+	</insert>
+	<!-- 업로드한 파일의 원래 이름 가져오기 -->
+	<select id="getOriName" parameterType="String" resultType="String">
+		SELECT BF_ORINAME FROM BF WHERE BF_SYSNAME=#{sysName}
+	</select>
+	<!-- 조회수 증가 쿼리 -->
+	<update id="viewUpdate" parameterType="Integer">
+		UPDATE B SET B_VIEWS=B_VIEWS+1 WHERE B_NUM=#{b_num}	
+	</update>
+	<!-- 게시글 수정 쿼리 -->
+	<update id="boardUpdate" parameterType="com.kotlin.board.dto.BoardDto">
+		UPDATE B SET B_TITLE=#{btitle}, B_CONTENTS=#{bcontents}
+		WHERE B_NUM=#{bnum}
+	</update>
+	<!-- 개별 파일 삭제 쿼리(수정 시) -->
+	<delete id="fileDelete" parameterType="String">
+		DELETE FROM BF WHERE BF_SYSNAME=#{sysName}
+	</delete>
+	<!-- 게시글의 댓글 삭제 쿼리 (아직)-->
+	<delete id="replyDelete" parameterType="Integer">
+		DELETE FROM R WHERE R_BNUM=#{bnum}
+	</delete>
+	<!-- 게시글에 업로드 된 모든 파일 삭제 -->
+	<delete id="filesListDelete" parameterType="Integer">
+		DELETE FROM BF WHERE BF_BNUM=#{bnum}
+	</delete>
+	<!-- 게시글 삭제 쿼리 -->
+	<delete id="boardDelete" parameterType="Integer">
+		DELETE FROM B WHERE B_NUM=#{bnum}	
+	</delete>
+</mapper>
